@@ -1,0 +1,167 @@
+<div class="booking-container" *ngIf="!loading && !error">
+  <div class="event-details" *ngIf="event">
+    <h2>{{ event.name }}</h2>
+    <p>{{ event.venue }} | {{ event.eventDateTime | date:'medium' }}</p>
+  </div>
+
+  <!-- Add ticket type selection for concerts and sports -->
+  <div class="ticket-types" *ngIf="event && (event.category === 'CONCERTS' || event.category === 'SPORTS')">
+    <h3>Select Ticket Type</h3>
+    <div class="ticket-options">
+      <div class="ticket-option" [class.selected]="selectedTicketType === 'VIP'" (click)="selectTicketType('VIP')">
+        <h4>VIP</h4>
+        <p>{{ event.price * 2 | currency }}</p>
+        <p>Premium seating with exclusive benefits</p>
+      </div>
+      <div class="ticket-option" [class.selected]="selectedTicketType === 'PREMIUM'" (click)="selectTicketType('PREMIUM')">
+        <h4>Premium</h4>
+        <p>{{ event.price * 1.5 | currency }}</p>
+        <p>Enhanced experience with better views</p>
+      </div>
+      <div class="ticket-option" [class.selected]="selectedTicketType === 'GENERAL'" (click)="selectTicketType('GENERAL')">
+        <h4>General</h4>
+        <p>{{ event.price | currency }}</p>
+        <p>Standard admission</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="screen">
+    <div class="screen-text">SCREEN</div>
+  </div>
+
+  <div class="seating-layout">
+    <div class="row-label">
+      <div *ngFor="let row of rows">{{ row }}</div>
+    </div>
+    
+    <div class="seats">
+      <div class="row" *ngFor="let row of seatLayout">
+        <div class="seat" 
+             *ngFor="let seat of row"
+             [class.unavailable]="!seat.available"
+             [class.selected]="seat.selected"
+             (click)="toggleSeat(seat)">
+          {{ seat.number }}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add loading and error states at the top -->
+  <div class="loading-container" *ngIf="loading">
+    <div class="spinner"></div>
+    <p>Loading event details...</p>
+  </div>
+  
+  <div class="error-container" *ngIf="error">
+    <p class="error-message">{{ error }}</p>
+    <button class="btn btn-primary" (click)="fetchEventDetails()">Retry</button>
+  </div>
+  
+  <!-- Update booking summary to use getTotalAmount() -->
+  <div class="booking-summary" *ngIf="selectedSeats.length > 0">
+    <h3>Booking Summary</h3>
+    <p>Selected Seats: {{ selectedSeats.length }}</p>
+    <p>Ticket Type: {{ selectedTicketType }}</p>
+    <p>Price per Ticket: {{ 
+      selectedTicketType === 'VIP' ? event?.price * 2 : 
+      selectedTicketType === 'PREMIUM' ? event?.price * 1.5 : 
+      event?.price | currency 
+    }}</p>
+    <p>Total Amount: {{ getTotalAmount() | currency }}</p>
+    <button class="btn btn-primary book-btn" (click)="bookTickets()">
+      Proceed to Payment
+    </button>
+  </div>
+  
+  <!-- Add additional styles -->
+  <style>
+  .loading-container {
+    text-align: center;
+    padding: 2rem;
+  }
+  
+  .spinner {
+    width: 40px;
+    height: 40px;
+    border: 4px solid #f3f3f3;
+    border-top: 4px solid #3498db;
+    border-radius: 50%;
+    margin: 0 auto 1rem;
+    animation: spin 1s linear infinite;
+  }
+  
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+  
+  .error-container {
+    text-align: center;
+    padding: 2rem;
+    background-color: #fff3f3;
+    border-radius: 8px;
+    margin: 1rem;
+  }
+  
+  .error-message {
+    color: #dc3545;
+    margin-bottom: 1rem;
+  }
+  
+  /* Rest of your existing styles remain unchanged */
+  </style>
+
+  <div class="seat-info">
+    <div class="info-item">
+      <div class="seat-demo available"></div>
+      <span>Available</span>
+    </div>
+    <div class="info-item">
+      <div class="seat-demo selected"></div>
+      <span>Selected</span>
+    </div>
+    <div class="info-item">
+      <div class="seat-demo unavailable"></div>
+      <span>Sold</span>
+    </div>
+  </div>
+</div>
+
+<!-- Add CSS for the new ticket types section -->
+<style>
+.ticket-types {
+  margin: 20px 0;
+  padding: 15px;
+  background: #f8f9fa;
+  border-radius: 8px;
+}
+
+.ticket-options {
+  display: flex;
+  gap: 15px;
+  margin-top: 15px;
+  flex-wrap: wrap;
+}
+
+.ticket-option {
+  flex: 1;
+  min-width: 200px;
+  padding: 15px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.ticket-option.selected {
+  border-color: #4CAF50;
+  background-color: rgba(76, 175, 80, 0.1);
+}
+
+.ticket-option h4 {
+  margin-top: 0;
+  color: #333;
+}
+</style>

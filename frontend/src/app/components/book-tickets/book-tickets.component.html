@@ -1,0 +1,345 @@
+<div class="booking-page">
+  <!-- Top Navigation & Breadcrumb -->
+  <div class="booking-nav-bar">
+    <div class="nav-content">
+      <a routerLink="/shows" class="back-link">
+        <i class="fa-solid fa-arrow-left"></i>
+        <span>Back to Shows</span>
+      </a>
+      <div class="nav-right">
+        <a routerLink="/my-bookings" class="nav-btn-link">
+          <i class="fa-solid fa-ticket"></i>
+          <span>My Bookings</span>
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <div class="page-container">
+    <!-- Loading Spinner -->
+    <div *ngIf="loading && !show" class="state-container">
+      <div class="spinner"></div>
+      <p class="state-text">Loading event details...</p>
+    </div>
+
+    <!-- Error loading event -->
+    <div *ngIf="error && !show" class="state-container error-state">
+      <i class="fa-solid fa-circle-exclamation state-icon"></i>
+      <h3>Unable to load event</h3>
+      <p>{{ error }}</p>
+      <a routerLink="/shows" class="btn btn-secondary">
+        Return to Shows
+      </a>
+    </div>
+
+    <!-- Main Booking Content -->
+    <div *ngIf="show" class="booking-layout">
+      <!-- Left Column: Event Hero & Selection Steps -->
+      <div class="selection-column">
+        <!-- Event Spotlight Banner -->
+        <div class="event-spotlight">
+          <div class="spotlight-header">
+            <span class="category-chip" [ngClass]="show.category.toLowerCase()">
+              {{ show.category }}
+            </span>
+            <span class="price-tag">
+              <span class="price-label">Starts at</span>
+              <span class="price-amount">{{ show.price | currency }}</span>
+            </span>
+          </div>
+
+          <h1 class="event-title">{{ show.name }}</h1>
+          <p class="event-desc">{{ show.description }}</p>
+
+          <div class="event-meta-grid">
+            <div class="meta-card">
+              <i class="fa-solid fa-location-dot meta-icon"></i>
+              <div class="meta-info">
+                <span class="meta-label">Venue</span>
+                <span class="meta-val">{{ show.venue }}</span>
+              </div>
+            </div>
+
+            <div class="meta-card">
+              <i class="fa-regular fa-calendar-star meta-icon"></i>
+              <div class="meta-info">
+                <span class="meta-label">Date & Time</span>
+                <span class="meta-val">{{ show.eventDateTime | date:'medium' }}</span>
+              </div>
+            </div>
+
+            <div class="meta-card">
+              <i class="fa-solid fa-couch meta-icon"></i>
+              <div class="meta-info">
+                <span class="meta-label">Availability</span>
+                <span class="meta-val highlight">{{ show.availableSeats }} seats open</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Concert and Sports Booking Flow -->
+        <div *ngIf="show.category === 'CONCERT' || show.category === 'SPORTS'" class="flow-card">
+          <!-- Step 1: Select Tier -->
+          <div class="step-section">
+            <div class="step-header">
+              <span class="step-number">1</span>
+              <div>
+                <h3 class="step-title">Select Ticket Tier</h3>
+                <p class="step-desc">Choose your preferred experience level</p>
+              </div>
+            </div>
+
+            <div class="tier-grid">
+              <!-- VIP Tier -->
+              <div 
+                class="tier-card vip-tier" 
+                [class.selected]="selectedTicketType === 'VIP'" 
+                (click)="selectTicketType('VIP')">
+                <div class="tier-badge">VIP LOUNGE</div>
+                <div class="tier-header">
+                  <h4>VIP Admission</h4>
+                  <span class="tier-price">{{ (show.vipPrice || show.price * 2) | currency }}</span>
+                </div>
+                <p class="tier-details">Front row prime access, fast-track entry & complimentary lounge perks</p>
+                <div class="tier-check">
+                  <i class="fa-solid fa-check"></i>
+                </div>
+              </div>
+
+              <!-- Premium Tier -->
+              <div 
+                class="tier-card premium-tier" 
+                [class.selected]="selectedTicketType === 'PREMIUM'" 
+                (click)="selectTicketType('PREMIUM')">
+                <div class="tier-badge">POPULAR</div>
+                <div class="tier-header">
+                  <h4>Premium Access</h4>
+                  <span class="tier-price">{{ (show.premiumPrice || show.price * 1.5) | currency }}</span>
+                </div>
+                <p class="tier-details">Enhanced elevated views with superior sound and dedicated section</p>
+                <div class="tier-check">
+                  <i class="fa-solid fa-check"></i>
+                </div>
+              </div>
+
+              <!-- General Tier -->
+              <div 
+                class="tier-card general-tier" 
+                [class.selected]="selectedTicketType === 'GENERAL'" 
+                (click)="selectTicketType('GENERAL')">
+                <div class="tier-badge">STANDARD</div>
+                <div class="tier-header">
+                  <h4>General Admission</h4>
+                  <span class="tier-price">{{ (show.generalPrice || show.price) | currency }}</span>
+                </div>
+                <p class="tier-details">Standard event admission with full standing and seating concourse access</p>
+                <div class="tier-check">
+                  <i class="fa-solid fa-check"></i>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Step 2: Quantity Stepper -->
+          <div class="step-section">
+            <div class="step-header">
+              <span class="step-number">2</span>
+              <div>
+                <h3 class="step-title">Number of Tickets</h3>
+                <p class="step-desc">Select how many passes you wish to reserve (max 10)</p>
+              </div>
+            </div>
+
+            <div class="quantity-control-card">
+              <div class="quantity-box">
+                <button 
+                  type="button" 
+                  class="qty-btn"
+                  [disabled]="ticketCount <= 1"
+                  (click)="ticketCount = ticketCount > 1 ? ticketCount - 1 : 1">
+                  <i class="fa-solid fa-minus"></i>
+                </button>
+                <div class="qty-display">
+                  <span class="qty-number">{{ ticketCount }}</span>
+                  <span class="qty-label">Tickets</span>
+                </div>
+                <button 
+                  type="button" 
+                  class="qty-btn"
+                  [disabled]="ticketCount >= 10"
+                  (click)="ticketCount = ticketCount < 10 ? ticketCount + 1 : 10">
+                  <i class="fa-solid fa-plus"></i>
+                </button>
+              </div>
+              <div class="qty-subtotal">
+                <span class="qty-subtotal-label">Subtotal</span>
+                <span class="qty-subtotal-val">{{ getTotalPrice() | currency }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Movie and Theatre Booking Flow -->
+        <div *ngIf="show.category === 'MOVIE' || show.category === 'THEATRE'" class="flow-card">
+          <!-- Step 1: Show Time -->
+          <div class="step-section">
+            <div class="step-header">
+              <span class="step-number">1</span>
+              <div>
+                <h3 class="step-title">Select Show Time</h3>
+                <p class="step-desc">Pick your preferred screening slot</p>
+              </div>
+            </div>
+
+            <div class="time-slots-wrapper">
+              <div *ngFor="let timeType of timeTypes" class="time-group">
+                <div class="time-group-label">
+                  <i *ngIf="timeType === 'morning'" class="fa-regular fa-sun"></i>
+                  <i *ngIf="timeType === 'matinee'" class="fa-regular fa-cloud-sun"></i>
+                  <i *ngIf="timeType === 'evening'" class="fa-regular fa-sunset"></i>
+                  <i *ngIf="timeType === 'night'" class="fa-regular fa-moon"></i>
+                  <span>{{ timeType | titlecase }}</span>
+                </div>
+                <div class="time-pills">
+                  <button 
+                    *ngFor="let time of showTimesByType[timeType]"
+                    [class.active]="selectedTime === time"
+                    (click)="selectShowTime(time)"
+                    type="button"
+                    class="time-pill">
+                    <span class="pill-time">{{ time }}</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Step 2: Interactive Seating Chart -->
+          <div *ngIf="selectedTime && show" class="step-section seating-section">
+            <div class="step-header">
+              <span class="step-number">2</span>
+              <div>
+                <h3 class="step-title">Select Your Seats</h3>
+                <p class="step-desc">Click seats on the chart to reserve them (up to 6 tickets)</p>
+              </div>
+            </div>
+
+            <div *ngIf="error" class="error-banner">
+              <i class="fa-solid fa-circle-exclamation"></i>
+              <span>{{ error }}</span>
+            </div>
+
+            <app-seating-chart
+              [eventId]="show.id"
+              [eventName]="show.name"
+              [venue]="show.venue"
+              [price]="getTicketPrice()"
+              (seatSelected)="onSeatsSelected($event)">
+            </app-seating-chart>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Column: Sticky Ticket Stub Summary -->
+      <div class="summary-column">
+        <div class="ticket-stub-card">
+          <div class="stub-header">
+            <div class="stub-brand">
+              <i class="fa-solid fa-ticket-simple"></i>
+              <span>Order Summary</span>
+            </div>
+            <span class="stub-pill">SECURE CHECKOUT</span>
+          </div>
+
+          <div class="stub-body">
+            <h3 class="stub-event-title">{{ show.name }}</h3>
+            <p class="stub-event-venue"><i class="fa-solid fa-location-dot"></i> {{ show.venue }}</p>
+            <p class="stub-event-date"><i class="fa-regular fa-calendar"></i> {{ show.eventDateTime | date:'mediumDate' }}</p>
+
+            <div class="stub-divider"></div>
+
+            <!-- Details for Concert/Sports -->
+            <div *ngIf="show.category === 'CONCERT' || show.category === 'SPORTS'" class="stub-line-items">
+              <div class="line-item">
+                <span class="line-label">Tier</span>
+                <span class="line-value font-bold">{{ selectedTicketType }}</span>
+              </div>
+              <div class="line-item">
+                <span class="line-label">Quantity</span>
+                <span class="line-value">{{ ticketCount }} tickets</span>
+              </div>
+              <div class="line-item">
+                <span class="line-label">Price per ticket</span>
+                <span class="line-value">{{ getTicketPrice() | currency }}</span>
+              </div>
+            </div>
+
+            <!-- Details for Movie/Theatre -->
+            <div *ngIf="show.category === 'MOVIE' || show.category === 'THEATRE'" class="stub-line-items">
+              <div class="line-item">
+                <span class="line-label">Show Time</span>
+                <span class="line-value">{{ selectedTime || 'Not selected' }}</span>
+              </div>
+              <div class="line-item">
+                <span class="line-label">Selected Seats</span>
+                <span class="line-value font-bold" [class.empty]="!selectedSeats.length">
+                  {{ getSelectedSeatsDisplay() }}
+                </span>
+              </div>
+              <div class="line-item">
+                <span class="line-label">Seat Price</span>
+                <span class="line-value">{{ show.price | currency }} each</span>
+              </div>
+            </div>
+
+            <div class="stub-divider perforated"></div>
+
+            <div class="total-row">
+              <span class="total-label">Total Amount</span>
+              <span class="total-amount">{{ getTotalPrice() | currency }}</span>
+            </div>
+
+            <!-- Concurrency Hold Reminder -->
+            <div class="hold-guarantee">
+              <i class="fa-solid fa-shield-halved"></i>
+              <div>
+                <strong>5-Minute Hold Guarantee</strong>
+                <p>Once you confirm, your seats are locked in the database so no one else can purchase them.</p>
+              </div>
+            </div>
+
+            <!-- Error in summary -->
+            <div *ngIf="error && !showSeatSelection" class="error-banner">
+              <i class="fa-solid fa-circle-exclamation"></i>
+              <span>{{ error }}</span>
+            </div>
+
+            <!-- Action Button -->
+            <button 
+              type="button"
+              class="confirm-btn" 
+              [disabled]="loading || !canShowBookingSummary()"
+              (click)="bookTickets()">
+              <span *ngIf="!loading">
+                <i class="fa-solid fa-lock"></i> Confirm Booking
+              </span>
+              <span *ngIf="loading" class="btn-loader">
+                <i class="fa-solid fa-circle-notch fa-spin"></i> Securing Seats...
+              </span>
+            </button>
+
+            <p *ngIf="!canShowBookingSummary()" class="incomplete-hint">
+              <span *ngIf="show.category === 'MOVIE' || show.category === 'THEATRE'">
+                Select a show time and at least 1 seat to confirm.
+              </span>
+              <span *ngIf="show.category === 'CONCERT' || show.category === 'SPORTS'">
+                Select your ticket tier and quantity above.
+              </span>
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

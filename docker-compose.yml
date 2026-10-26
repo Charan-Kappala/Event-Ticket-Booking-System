@@ -1,0 +1,55 @@
+# Runs the whole app: MySQL, the backend API and the Angular frontend.
+# Usage:  cp .env.example .env  (then set JWT_SECRET),  docker compose up --build
+# App: http://localhost:4200   API: http://localhost:8080   MySQL: localhost:3307 (user ticketing / ticketing)
+services:
+  mysql:
+    image: mysql:8.4
+    environment:
+      MYSQL_DATABASE: ticket_booking_db
+      MYSQL_USER: ${DB_USERNAME:-ticketing}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-ticketing}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root-local-only}
+    ports:
+      - "3307:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -u${DB_USERNAME:-ticketing} -p${DB_PASSWORD:-ticketing}"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+
+  app:
+    build: ./backend
+    environment:
+      DB_URL: jdbc:mysql://mysql:3306/ticket_booking_db
+      DB_USERNAME: ${DB_USERNAME:-ticketing}
+      DB_PASSWORD: ${DB_PASSWORD:-ticketing}
+      # Read from .env (copy .env.example); compose refuses to start if it's missing
+      JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in .env - see .env.example}
+      # Optional overrides, e.g. a short hold to watch expiry happen:
+      BOOKING_HOLD_DURATION: ${BOOKING_HOLD_DURATION:-PT5M}
+      # Demo accounts and events (public passwords, see README). Remove for anything real.
+      APP_SEED_DEMO_DATA: "true"
+    ports:
+      - "8080:8080"
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+  # Angular dev server (the app's own `ng serve`); first start installs packages, which takes a few minutes
+  frontend:
+    image: node:20-bookworm
+    working_dir: /app
+    command: sh -c "npm ci --no-audit --no-fund && npx ng serve --host 0.0.0.0 --port 4200 --poll 2000"
+    ports:
+      - "4200:4200"
+    volumes:
+      - ./frontend:/app
+      - frontend-node-modules:/app/node_modules
+    depends_on:
+      - app
+
+volumes:
+  mysql-data:
+  frontend-node-modules:

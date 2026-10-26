@@ -1,0 +1,193 @@
+<div class="shows-page">
+  <!-- Top Navigation Header -->
+  <header class="app-nav">
+    <div class="nav-container">
+      <div class="brand">
+        <div class="brand-logo">
+          <i class="fa-solid fa-ticket-simple"></i>
+        </div>
+        <div class="brand-info">
+          <span class="brand-name">EventPass</span>
+          <span class="brand-tag">Live Experiences</span>
+        </div>
+      </div>
+
+      <div class="nav-actions">
+        <div class="nav-search">
+          <i class="fa-solid fa-magnifying-glass search-icon"></i>
+          <input 
+            type="text" 
+            [(ngModel)]="searchTerm" 
+            placeholder="Search events, venues..." 
+            class="search-input">
+          <button *ngIf="searchTerm" class="clear-search" (click)="searchTerm = ''">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+
+        <a [routerLink]="['/my-bookings']" class="btn btn-bookings">
+          <i class="fa-solid fa-ticket"></i>
+          <span>My Bookings</span>
+        </a>
+
+        <button class="btn btn-logout" (click)="logout()" title="Logout">
+          <i class="fa-solid fa-arrow-right-from-bracket"></i>
+          <span>Logout</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Hero Section -->
+  <section class="hero-banner">
+    <div class="hero-content">
+      <div class="hero-pill">
+        <i class="fa-solid fa-bolt"></i>
+        <span>Instant Concurrency-Safe Reservations</span>
+      </div>
+      <h1 class="hero-title">Experience Live Entertainment</h1>
+      <p class="hero-subtitle">Book exclusive concerts, cinema releases, theatrical performances & sporting events with 5-minute reserved seat locks.</p>
+    </div>
+  </section>
+
+  <!-- Main Content Area -->
+  <main class="main-content">
+    <!-- Filter Control Bar -->
+    <div class="filter-panel">
+      <div class="filter-row">
+        <!-- Category Filter -->
+        <div class="filter-item">
+          <label><i class="fa-solid fa-layer-group"></i> Category</label>
+          <div class="select-wrapper">
+            <select [(ngModel)]="selectedCategory">
+              <option value="">All Categories</option>
+              <option value="MOVIE">🎬 Movie</option>
+              <option value="SPORTS">⚽ Sports</option>
+              <option value="THEATRE">🎭 Theatre</option>
+              <option value="CONCERT">🎸 Concert</option>
+            </select>
+            <i class="fa-solid fa-chevron-down select-arrow"></i>
+          </div>
+        </div>
+
+        <!-- Date Filter -->
+        <div class="filter-item">
+          <label><i class="fa-regular fa-calendar"></i> Date</label>
+          <div class="input-wrapper">
+            <input type="date" [(ngModel)]="selectedDate">
+          </div>
+        </div>
+
+        <!-- Venue Filter -->
+        <div class="filter-item">
+          <label><i class="fa-solid fa-location-dot"></i> Venue</label>
+          <div class="select-wrapper">
+            <select [(ngModel)]="selectedVenue">
+              <option value="">All Venues</option>
+              <option *ngFor="let venue of venues" [value]="venue">{{ venue }}</option>
+            </select>
+            <i class="fa-solid fa-chevron-down select-arrow"></i>
+          </div>
+        </div>
+
+        <!-- Reset Button -->
+        <div class="filter-item reset-item" *ngIf="searchTerm || selectedCategory || selectedDate || selectedVenue">
+          <label>&nbsp;</label>
+          <button class="btn btn-reset" (click)="searchTerm = ''; selectedCategory = ''; selectedDate = ''; selectedVenue = ''">
+            <i class="fa-solid fa-rotate-left"></i> Reset
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Loading State -->
+    <div *ngIf="loading" class="state-container">
+      <div class="spinner"></div>
+      <p class="state-text">Loading upcoming shows...</p>
+    </div>
+
+    <!-- Error State -->
+    <div *ngIf="error" class="state-container error-state">
+      <i class="fa-solid fa-circle-exclamation state-icon"></i>
+      <h3>Unable to load events</h3>
+      <p>{{ error }}</p>
+      <button class="btn btn-primary" (click)="fetchShows()">
+        <i class="fa-solid fa-rotate-right"></i> Try Again
+      </button>
+    </div>
+
+    <!-- Shows Grid -->
+    <div *ngIf="!loading && !error && filteredShows.length > 0" class="shows-grid">
+      <div *ngFor="let show of filteredShows" class="show-card">
+        <!-- Card Image Header -->
+        <div class="card-media">
+          <img [src]="getCategoryImage(show.category)" [alt]="show.name" loading="lazy">
+          <div class="media-overlay"></div>
+          
+          <!-- Category Chip -->
+          <span class="category-chip" [ngClass]="show.category.toLowerCase()">
+            {{ show.category }}
+          </span>
+
+          <!-- Price Tag -->
+          <div class="price-chip">
+            <span class="price-from">from</span>
+            <span class="price-value">{{ show.price | currency }}</span>
+          </div>
+        </div>
+
+        <!-- Card Body -->
+        <div class="card-body">
+          <div class="card-headline">
+            <h2 class="show-title" [title]="show.name">{{ show.name }}</h2>
+          </div>
+
+          <p class="show-desc">{{ show.description }}</p>
+
+          <div class="meta-list">
+            <div class="meta-item">
+              <i class="fa-solid fa-location-dot meta-icon"></i>
+              <span class="meta-text">{{ show.venue }}</span>
+            </div>
+
+            <div class="meta-item">
+              <i class="fa-regular fa-calendar-clock meta-icon"></i>
+              <span class="meta-text">{{ show.eventDateTime | date:'medium' }}</span>
+            </div>
+
+            <div class="meta-item seats-item">
+              <i class="fa-solid fa-couch meta-icon"></i>
+              <span class="seats-badge" [class.low-seats]="show.availableSeats > 0 && show.availableSeats <= 10" [class.sold-out]="show.availableSeats === 0">
+                <span class="seats-dot"></span>
+                {{ show.availableSeats === 0 ? 'Sold Out' : show.availableSeats + ' seats available' }}
+              </span>
+            </div>
+          </div>
+
+          <!-- Action Button -->
+          <div class="card-action">
+            <a 
+              class="btn-book" 
+              [routerLink]="['/book-tickets', show.id]"
+              [class.btn-disabled]="show.availableSeats === 0">
+              <span>{{ show.availableSeats === 0 ? 'Sold Out' : 'Book Tickets' }}</span>
+              <i class="fa-solid fa-arrow-right"></i>
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Empty State -->
+    <div *ngIf="!loading && !error && filteredShows.length === 0" class="state-container empty-state">
+      <div class="empty-icon-box">
+        <i class="fa-solid fa-ticket-simple"></i>
+      </div>
+      <h3>No shows found</h3>
+      <p>We couldn't find any events matching your selected search or filters.</p>
+      <button class="btn btn-secondary" (click)="searchTerm = ''; selectedCategory = ''; selectedDate = ''; selectedVenue = ''">
+        Clear All Filters
+      </button>
+    </div>
+  </main>
+</div>

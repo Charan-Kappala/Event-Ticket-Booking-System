@@ -1,0 +1,176 @@
+<div class="bookings-page">
+  <!-- Top Navigation Bar -->
+  <div class="nav-bar">
+    <div class="nav-container">
+      <a routerLink="/shows" class="back-link">
+        <i class="fa-solid fa-arrow-left"></i>
+        <span>Browse Shows</span>
+      </a>
+      <div class="nav-brand">
+        <i class="fa-solid fa-ticket-simple"></i>
+        <span>Ticket Wallet</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="main-container">
+    <div class="page-header">
+      <div class="header-text">
+        <h1 class="page-title">My Bookings</h1>
+        <p class="page-subtitle">Manage your reserved holds, confirmed passes and ticket history</p>
+      </div>
+      <button class="btn btn-secondary refresh-btn" (click)="fetchUserBookings()" [disabled]="loading">
+        <i class="fa-solid fa-rotate-right" [class.fa-spin]="loading"></i>
+        <span>Refresh</span>
+      </button>
+    </div>
+
+    <!-- Loading State -->
+    <div *ngIf="loading && bookings.length === 0" class="state-container">
+      <div class="spinner"></div>
+      <p class="state-text">Loading your ticket wallet...</p>
+    </div>
+
+    <!-- Error State -->
+    <div *ngIf="error" class="state-container error-state">
+      <i class="fa-solid fa-circle-exclamation state-icon"></i>
+      <h3>Unable to load bookings</h3>
+      <p>{{ error }}</p>
+      <button class="btn btn-primary" (click)="fetchUserBookings()">
+        <i class="fa-solid fa-rotate-right"></i> Try Again
+      </button>
+    </div>
+
+    <!-- Bookings List -->
+    <div class="bookings-list" *ngIf="bookings.length > 0">
+      <div 
+        class="ticket-pass-card" 
+        *ngFor="let booking of bookings"
+        [class.hold-active-card]="isHoldActive(booking)"
+        [class.expired-card]="isHoldExpired(booking)">
+        
+        <!-- Left Stub: Event & Booking Details -->
+        <div class="pass-main">
+          <div class="pass-header">
+            <div class="pass-id-chip">
+              <i class="fa-solid fa-ticket"></i>
+              <span>BOOKING #{{ booking.id }}</span>
+            </div>
+
+            <!-- Status Pill -->
+            <div class="status-badge" [ngClass]="isHoldExpired(booking) ? 'status-expired' : 'status-' + booking.status.toLowerCase()">
+              <span class="status-dot"></span>
+              <span *ngIf="isHoldActive(booking)">RESERVED (HOLD ACTIVE)</span>
+              <span *ngIf="!isHoldActive(booking) && isHoldExpired(booking)">HOLD EXPIRED</span>
+              <span *ngIf="!isHoldExpired(booking) && !isHoldActive(booking)">{{ booking.status }}</span>
+            </div>
+          </div>
+
+          <h2 class="pass-title">
+            {{ eventNames.get(booking.eventId) || 'Event #' + booking.eventId }}
+          </h2>
+
+          <div class="pass-details-grid">
+            <div class="detail-cell" *ngIf="booking.showTime">
+              <span class="detail-label"><i class="fa-regular fa-clock"></i> Show Time</span>
+              <span class="detail-val">{{ booking.showTime }}</span>
+            </div>
+
+            <div class="detail-cell">
+              <span class="detail-label"><i class="fa-solid fa-users"></i> Quantity</span>
+              <span class="detail-val">{{ booking.numberOfTickets }} {{ booking.numberOfTickets === 1 ? 'Ticket' : 'Tickets' }}</span>
+            </div>
+
+            <div class="detail-cell">
+              <span class="detail-label"><i class="fa-solid fa-receipt"></i> Total Paid/Due</span>
+              <span class="detail-val price-val">${{ booking.totalPrice }}</span>
+            </div>
+          </div>
+
+          <!-- Active Hold Countdown Banner -->
+          <div *ngIf="isHoldActive(booking)" class="hold-countdown-banner">
+            <div class="countdown-pulse">
+              <i class="fa-solid fa-stopwatch fa-beat"></i>
+            </div>
+            <div class="countdown-text">
+              <strong>Seats Held for {{ formatCountdown(secondsLeft(booking)) }}</strong>
+              <span>Confirm payment before timer expires to finalize your reservation.</span>
+            </div>
+          </div>
+
+          <!-- Hold Expired Banner -->
+          <div *ngIf="isHoldExpired(booking)" class="hold-expired-banner">
+            <i class="fa-solid fa-clock-rotate-left"></i>
+            <span>5-minute seat hold expired. These seats have been released back to other attendees.</span>
+          </div>
+
+          <!-- Per-booking error / notice message -->
+          <div *ngIf="messages[booking.id]" class="booking-error-banner">
+            <i class="fa-solid fa-circle-exclamation"></i>
+            <span>{{ messages[booking.id] }}</span>
+          </div>
+        </div>
+
+        <!-- Perforated Cutout Separator -->
+        <div class="pass-divider">
+          <div class="notch notch-top"></div>
+          <div class="perforated-line"></div>
+          <div class="notch notch-bottom"></div>
+        </div>
+
+        <!-- Right Stub: Actions & Summary -->
+        <div class="pass-actions-stub">
+          <div class="stub-price-box">
+            <span class="stub-price-label">Amount</span>
+            <span class="stub-price-amount">${{ booking.totalPrice }}</span>
+          </div>
+
+          <div class="actions-group">
+            <!-- Confirm Payment Button -->
+            <button 
+              class="btn-pass-action btn-pay"
+              *ngIf="isHoldActive(booking)"
+              [disabled]="busyBookingId === booking.id"
+              (click)="confirmPayment(booking)">
+              <span *ngIf="busyBookingId !== booking.id">
+                <i class="fa-solid fa-credit-card"></i> Confirm Payment
+              </span>
+              <span *ngIf="busyBookingId === booking.id">
+                <i class="fa-solid fa-circle-notch fa-spin"></i> Processing...
+              </span>
+            </button>
+
+            <!-- Pick Seats Again Button -->
+            <button 
+              class="btn-pass-action btn-rebook"
+              *ngIf="isHoldExpired(booking)"
+              (click)="pickSeatsAgain(booking)">
+              <i class="fa-solid fa-rotate-left"></i> Pick Seats Again
+            </button>
+
+            <!-- Cancel Booking Button -->
+            <button 
+              class="btn-pass-action btn-cancel"
+              *ngIf="canCancel(booking)"
+              [disabled]="busyBookingId === booking.id"
+              (click)="cancelBooking(booking)">
+              <i class="fa-solid fa-ban"></i> Cancel Booking
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Empty State -->
+    <div *ngIf="!loading && !error && bookings.length === 0" class="state-container empty-state">
+      <div class="empty-icon-box">
+        <i class="fa-solid fa-ticket-simple"></i>
+      </div>
+      <h3>Your ticket wallet is empty</h3>
+      <p>You haven't reserved or booked any event tickets yet.</p>
+      <a routerLink="/shows" class="btn btn-primary">
+        <i class="fa-solid fa-compass"></i> Discover Upcoming Shows
+      </a>
+    </div>
+  </div>
+</div>

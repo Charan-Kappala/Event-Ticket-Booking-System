@@ -1,0 +1,257 @@
+<div class="admin-page">
+  <!-- Top Navigation Header -->
+  <header class="app-nav">
+    <div class="nav-container">
+      <div class="brand">
+        <div class="brand-logo admin-logo">
+          <i class="fa-solid fa-shield-halved"></i>
+        </div>
+        <div class="brand-info">
+          <span class="brand-name">EventPass Control</span>
+          <span class="brand-tag">System Administration</span>
+        </div>
+      </div>
+
+      <div class="nav-actions">
+        <div class="system-status-chip">
+          <span class="status-dot-live"></span>
+          <span>Concurrency Locks Active</span>
+        </div>
+        <button class="btn btn-logout" (click)="logout()">
+          <i class="fa-solid fa-arrow-right-from-bracket"></i>
+          <span>Logout</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="main-container">
+    <!-- Header Banner -->
+    <div class="admin-hero">
+      <div>
+        <h1 class="page-title">Platform Administration</h1>
+        <p class="page-subtitle">Real-time inventory auditing, cross-event sales analytics and transaction monitoring</p>
+      </div>
+      <button class="btn btn-secondary refresh-btn" (click)="fetchEvents()" [disabled]="loading">
+        <i class="fa-solid fa-rotate-right" [class.fa-spin]="loading"></i>
+        <span>Sync Events</span>
+      </button>
+    </div>
+
+    <!-- Quick Stats Bar -->
+    <div class="platform-stats-grid" *ngIf="!loading && events.length > 0">
+      <div class="stat-pill-card">
+        <div class="stat-icon-box stat-purple">
+          <i class="fa-solid fa-calendar-check"></i>
+        </div>
+        <div class="stat-info">
+          <span class="stat-label">Total Events</span>
+          <span class="stat-val">{{ events.length }}</span>
+        </div>
+      </div>
+
+      <div class="stat-pill-card">
+        <div class="stat-icon-box stat-cyan">
+          <i class="fa-solid fa-couch"></i>
+        </div>
+        <div class="stat-info">
+          <span class="stat-label">Platform Capacity</span>
+          <span class="stat-val">{{ getTotalPlatformSeats() }}</span>
+        </div>
+      </div>
+
+      <div class="stat-pill-card">
+        <div class="stat-icon-box stat-emerald">
+          <i class="fa-solid fa-ticket"></i>
+        </div>
+        <div class="stat-info">
+          <span class="stat-label">Active Claims</span>
+          <span class="stat-val">{{ getTotalPlatformBookings() }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Loading State -->
+    <div *ngIf="loading" class="state-container">
+      <div class="spinner"></div>
+      <p class="state-text">Fetching platform events and booking metrics...</p>
+    </div>
+
+    <!-- Error State -->
+    <div *ngIf="error" class="state-container error-state">
+      <i class="fa-solid fa-circle-exclamation state-icon"></i>
+      <h3>Error Loading Platform Data</h3>
+      <p>{{ error }}</p>
+      <button class="btn btn-primary" (click)="fetchEvents()">
+        <i class="fa-solid fa-rotate-right"></i> Retry
+      </button>
+    </div>
+
+    <!-- Table Container -->
+    <div class="table-container-card" *ngIf="!loading && !error && events.length > 0">
+      <div class="table-header">
+        <div class="table-title-group">
+          <h2>Platform Events & Inventories</h2>
+          <span class="table-count-badge">{{ events.length }} listings</span>
+        </div>
+      </div>
+
+      <div class="table-scroll-wrapper">
+        <table class="admin-data-table">
+          <thead>
+            <tr>
+              <th>Event Name</th>
+              <th>Category</th>
+              <th>Venue</th>
+              <th>Date & Time</th>
+              <th>Total Capacity</th>
+              <th>Available</th>
+              <th>Base Price</th>
+              <th>Bookings</th>
+              <th class="text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let event of events" [class.row-selected]="selectedEvent?.id === event.id">
+              <td class="font-bold text-white">
+                <span class="event-name-cell">{{ event.name }}</span>
+              </td>
+              <td>
+                <span class="category-chip" [ngClass]="event.category.toLowerCase()">
+                  {{ event.category }}
+                </span>
+              </td>
+              <td>
+                <span class="venue-cell"><i class="fa-solid fa-location-dot"></i> {{ event.venue }}</span>
+              </td>
+              <td class="text-muted">
+                {{ event.eventDateTime | date:'mediumDate' }}
+              </td>
+              <td class="text-center font-bold">
+                {{ event.totalSeats }}
+              </td>
+              <td>
+                <div class="available-cell">
+                  <span class="avail-dot" [class.low]="event.availableSeats > 0 && event.availableSeats <= 10" [class.empty]="event.availableSeats === 0"></span>
+                  <span class="avail-num font-bold">{{ event.availableSeats }}</span>
+                </div>
+              </td>
+              <td class="font-bold text-emerald">
+                {{ event.price | currency }}
+              </td>
+              <td>
+                <span class="bookings-badge">
+                  <i class="fa-solid fa-ticket"></i> {{ event.bookings.length || 0 }}
+                </span>
+              </td>
+              <td class="text-right">
+                <button class="btn-table-action" (click)="viewAnalytics(event)">
+                  <i class="fa-solid fa-chart-pie"></i>
+                  <span>Analytics</span>
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Analytics Modal -->
+    <div class="modal-backdrop" *ngIf="showAnalytics && selectedEvent" (click)="closeAnalytics()">
+      <div class="modal-window analytics-modal" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <div class="modal-title-group">
+            <div class="modal-icon-box">
+              <i class="fa-solid fa-chart-line-up"></i>
+            </div>
+            <div>
+              <h2 class="modal-title">{{ selectedEvent.name }}</h2>
+              <p class="modal-sub">Real-Time Performance & Sales Audit</p>
+            </div>
+          </div>
+          <button class="btn-close" (click)="closeAnalytics()">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+
+        <div class="analytics-modal-body">
+          <div class="kpi-grid">
+            <div class="kpi-card">
+              <div class="kpi-icon-box kpi-revenue">
+                <i class="fa-solid fa-dollar-sign"></i>
+              </div>
+              <div class="kpi-info">
+                <span class="kpi-label">Gross Revenue</span>
+                <span class="kpi-val">{{ (selectedEvent.analytics?.totalRevenue || 0) | currency }}</span>
+                <span class="kpi-note">Paid & captured</span>
+              </div>
+            </div>
+
+            <div class="kpi-card">
+              <div class="kpi-icon-box kpi-occupancy">
+                <i class="fa-solid fa-chart-pie"></i>
+              </div>
+              <div class="kpi-info">
+                <span class="kpi-label">Occupancy Rate</span>
+                <span class="kpi-val">{{ (selectedEvent.analytics?.occupancyRate || 0) | number:'1.0-2' }}%</span>
+                <span class="kpi-note">Seat inventory taken</span>
+              </div>
+            </div>
+
+            <div class="kpi-card">
+              <div class="kpi-icon-box kpi-tickets">
+                <i class="fa-solid fa-ticket"></i>
+              </div>
+              <div class="kpi-info">
+                <span class="kpi-label">Total Claims</span>
+                <span class="kpi-val">{{ selectedEvent.bookings.length || 0 }}</span>
+                <span class="kpi-note">Processed bookings</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Sales Breakdown by Show Time -->
+          <div class="sales-section" *ngIf="selectedEvent.analytics?.salesByShowTime">
+            <h4 class="sales-section-title">
+              <i class="fa-regular fa-clock"></i> Sales by Show Time
+            </h4>
+            <div class="sales-pills-grid">
+              <div class="sales-pill-card" *ngFor="let sale of selectedEvent.analytics?.salesByShowTime | keyvalue">
+                <span class="sale-time">{{ sale.key }}</span>
+                <span class="sale-tickets">{{ sale.value }} tickets</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="modal-footer">
+            <button class="btn btn-secondary" (click)="closeAnalytics()">Close</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Ticket Booking Test Drawer (When Event Selected) -->
+    <div class="test-booking-drawer" *ngIf="selectedEvent && !showAnalytics">
+      <div class="drawer-header">
+        <div>
+          <h4>Reserve Test Tickets &bull; {{ selectedEvent.name }}</h4>
+          <p>Simulate booking up to 6 tickets under administrative privileges</p>
+        </div>
+        <button class="btn-close" (click)="selectedEvent = null">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+      <div class="drawer-body">
+        <div class="form-group inline-group">
+          <label for="ticketCount">Select Quantity:</label>
+          <select id="ticketCount" [(ngModel)]="ticketCount">
+            <option *ngFor="let count of ticketOptions" [value]="count">{{ count }} {{ count === 1 ? 'Ticket' : 'Tickets' }}</option>
+          </select>
+        </div>
+        <button class="btn btn-primary" (click)="bookTickets()">
+          <i class="fa-solid fa-ticket"></i> Execute Booking Test
+        </button>
+      </div>
+    </div>
+  </main>
+</div>

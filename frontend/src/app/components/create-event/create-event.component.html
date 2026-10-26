@@ -1,0 +1,60 @@
+<div class="create-event-wrapper">
+  <div class="create-event-card">
+    <div class="card-header">
+      <div class="icon-box">
+        <i class="fa-solid fa-calendar-plus"></i>
+      </div>
+      <div>
+        <h2>Create New Event</h2>
+        <p>Publish an event listing to the public ticket portal</p>
+      </div>
+    </div>
+
+    <form (ngSubmit)="createEvent()">
+      <div class="form-group">
+        <label for="name">Event Name</label>
+        <input type="text" id="name" [(ngModel)]="eventData.name" name="name" required placeholder="Event title">
+      </div>
+
+      <div class="form-group">
+        <label for="description">Description</label>
+        <textarea id="description" [(ngModel)]="eventData.description" name="description" required rows="3" placeholder="Short description"></textarea>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group half">
+          <label for="date">Date</label>
+          <input type="date" id="date" [(ngModel)]="eventData.date" name="date" required>
+        </div>
+
+        <div class="form-group half">
+          <label for="time">Time</label>
+          <input type="time" id="time" [(ngModel)]="eventData.time" name="time" required>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group half">
+          <label for="venue">Venue</label>
+          <input type="text" id="venue" [(ngModel)]="eventData.venue" name="venue" required placeholder="Location / Theater">
+        </div>
+
+        <div class="form-group half">
+          <label for="price">Price ($)</label>
+          <input type="number" id="price" [(ngModel)]="eventData.price" name="price" required min="0" placeholder="0.00">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="type">Event Type</label>
+        <select id="type" [(ngModel)]="eventData.type" name="type" required>
+          <option *ngFor="let type of eventTypes" [value]="type">{{ type }}</option>
+        </select>
+      </div>
+
+      <button type="submit" class="submit-btn">
+        <i class="fa-solid fa-plus"></i> Create Event
+      </button>
+    </form>
+  </div>
+</div>
